@@ -9,8 +9,8 @@ Gem::Specification.new do |gem|
   gem.authors       = ["hattb"]
   gem.email         = ["hattwj@yahoo.com"]
   gem.description   = %q{A ruby gem for manipulating OpenSSH authorized_keys files}
-  gem.summary       = %q{TODO: Write a gem summary}
-  gem.homepage      = ""
+  gem.summary       = %q{SSHakery is a ruby gem for manipulating OpenSSH authorized_keys files. It features file locking, backups (todo), and atomic writes}
+  gem.homepage      = "https://github.com/hattwj/sshakery"
 
   gem.files         = `git ls-files`.split($/)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
