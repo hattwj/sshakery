@@ -70,12 +70,13 @@ module Sshakery
         }
 
         # regex for matching ssh keys imported from a pub key file
-        KEY_REGEX = /(ssh-dss|ssh-rsa) ([A-Za-z0-9\/\+]+={0,3})/
+        TYPE_REGEX = /ssh-dss|ssh-rsa/  
+        B64_REGEX = /[A-Za-z0-9\/\+]+={0,3}/
         
         # additional regex for loading from auth keys file
         OPTS_REGEX = {
-            :key_type=> / (ssh-dss|ssh-rsa) (?:[A-Za-z0-9\/\+]+={0,3})/,
-            :key_data=> / (?:ssh-dss|ssh-rsa) ([A-Za-z0-9\/\+]+={0,3})/,
+            :key_type=> / (#{TYPE_REGEX}) (?:#{B64_REGEX})/,
+            :key_data=> / (?:#{TYPE_REGEX}) (#{B64_REGEX})/,
             :note=>/([A-Za-z0-9_\/\+@]+)\s*$/,
             :command=>/command="([^"]+)"(?: |,)/,
             :environment=>/([A-Z0-9]+=[^\s]+)(?: |,)/,
@@ -185,7 +186,7 @@ module Sshakery
             end
         end
         
-        def all_no(val)
+        def all_no=(val)
             BOOL_ATTRIBUTES.each do |attr|
                 self.instance_variable_set("@#{attr}",val)
             end
@@ -217,17 +218,24 @@ module Sshakery
         # validate and add a key to authorized keys file
         def save
             return false if not self.valid?
-            self.class.write(self)
-            return true
+            return self.class.write(self)
+        end
+
+        # Raise an error if save doest pass validations
+        def save!
+            unless self.save 
+                raise Sshakery::Errors::RecordInvalid 'Errors preventing save' 
+            end
         end
 
         def destroy
-            return if not self.saved?
-            self.class.destroy self
+            return false if not self.saved?
+            return self.class.destroy self
         end
         
         # construct line for file
         def gen_raw_line
+            return nil unless self.valid?
             line = ''
             data = []
             SUB_STR_ATTRIBUTES.each do |field,field_regex|
@@ -270,44 +278,35 @@ module Sshakery
                 data.push val if val.nil? == false
             end
             line += data.join ' '
-
+            return line
         end
-
 
         def valid?
             self.errors = []
+
             if not self.key_data:
-                self.errors.push('malformed or unsupported key')
+                self.errors.push(:key_data=>'public key is malformed or unsupported')
+                return false
             end
 
-            #if not m[0][0]:
-            #    raise self.errors.push('missing key type')
-            #end
+            if self.key_type.nil?:
+                self.errors.push(:key_type=>'missing key type')
+                return false
+            end
+ 
+            if not self.key_data.match B64_REGEX:
+                self.errors.push(:key_data=>'public key is invalid base 64')
+            end
 
-            #if not m[0][1]:
-            #    raise self.errors.push('missing key')
-            #end
+            if self.key_data.len < 30:
+                self.errors.push(:key_data=>'public key is too short')
+            end
 
-            #if m[0][2]:
-            #    note=m[0][2]
-            #end
+            if self.key_data.len > 1000:
+                self.errors.push(:key_data=>'public key is too long') 
+            end
 
-            #keytype=m[0][0]
-            #pubkey=m[0][1]
-    
-            #if len(pubkey)%4 < 0:
-            #    raise self.errors.push('key is invalid base 64')
-            #end
-
-            #if 30 > len(pubkey):
-            #    raise self.errors.push('key too short')
-            #end
-
-            #if 1000 < len(pubkey):
-            #    raise self.errors.push('key too long') 
-            #end
-
-            return true
+            return self.errors.empty?
         end
 
         def saved?
