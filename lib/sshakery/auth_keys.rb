@@ -75,8 +75,8 @@ module Sshakery
         
         # additional regex for loading from auth keys file
         OPTS_REGEX = {
-            :key_type=> / (#{TYPE_REGEX}) (?:#{B64_REGEX})/,
-            :key_data=> / (?:#{TYPE_REGEX}) (#{B64_REGEX})/,
+            :key_type=> /(#{TYPE_REGEX}) (?:#{B64_REGEX})/,
+            :key_data=> /(?:#{TYPE_REGEX}) (#{B64_REGEX})/,
             :note=>/([A-Za-z0-9_\/\+@]+)\s*$/,
             :command=>/command="([^"]+)"(?: |,)/,
             :environment=>/([A-Z0-9]+=[^\s]+)(?: |,)/,
@@ -89,8 +89,16 @@ module Sshakery
             :permitopen=>/permitopen="([a-z0-9.]+:[\d]+)"(?: |,)/,
             :tunnel=>/tunnel="(\d+)"(?: |,)/
         }
-
-    # class attributes
+        
+        ERRORS = {
+            :data_modulus=> {:key_data=>'public key length is not a modulus of 4'}, 
+            :data_short  => {:key_data=>'public key is too short'},
+            :data_long   => {:key_data=>'public key is too long'},
+            :data_char   => {:key_data=>'public key contains invalid base64 characters'},
+            :data_nil    => {:key_data=>'public key is missing'},
+            :type_nil    => {:key_type=>'missing key type'}
+        }
+    # class instance  attributes
         class << self; attr_accessor :path, :temp_path  end
         
     # class methods
@@ -112,24 +120,23 @@ module Sshakery
             self.write auth_key, destroy=true
         end
 
-        def self.write(auth_key, destroy=false) 
-            temp_file = Tempfile.new(self.temp_path)
-            begin
-                FsUtils.lock_file(self.path) do |file|
-                    file.each_line do |line|
-                        key=self.new(:raw_line => line )
-                        if key.key_data == auth_key.key_data 
-                            temp_file.puts auth_key.gen_raw_line if destroy==false
-                        else
-                            temp_file.puts line 
-                        end
+        def self.write(auth_key, destroy=false)
+            lines = []
+            FsUtils.lock_file(self.path) do |f|
+                f.each_line do |line|
+                    key=self.new(:raw_line => line )
+
+                    if key.key_data == auth_key.key_data 
+                        lines.push auth_key.gen_raw_line if destroy==false
+                    else
+                        lines.push line 
                     end
                 end
-                temp_file.rewind
-                FileUtils.mv(temp_file.path, self.path)
-            ensure
-                temp_file.close
-                temp_file.unlink
+                f.rewind
+                f.truncate(0)
+                lines.each do |line|
+                    f.puts line
+                end
             end
         end
         
@@ -151,7 +158,7 @@ module Sshakery
 
             unless self.raw_line.nil? 
                 self.load_raw_line
-                self.saved == true
+                self.saved = true
             end
         end
         
@@ -224,7 +231,7 @@ module Sshakery
         # Raise an error if save doest pass validations
         def save!
             unless self.save 
-                raise Sshakery::Errors::RecordInvalid 'Errors preventing save' 
+                raise Sshakery::Errors::RecordInvalid.new 'Errors preventing save' 
             end
         end
 
@@ -284,26 +291,30 @@ module Sshakery
         def valid?
             self.errors = []
 
-            if not self.key_data:
-                self.errors.push(:key_data=>'public key is malformed or unsupported')
+            if self.key_data.nil?:
+                self.errors.push ERRORS[:data_nil] 
                 return false
             end
 
             if self.key_type.nil?:
-                self.errors.push(:key_type=>'missing key type')
+                self.errors.push ERRORS[:type_nil] 
                 return false
             end
  
-            if not self.key_data.match B64_REGEX:
-                self.errors.push(:key_data=>'public key is invalid base 64')
+            if not self.key_data.match "^#{B64_REGEX}$":
+                self.errors.push ERRORS[:data_char] 
             end
 
-            if self.key_data.len < 30:
-                self.errors.push(:key_data=>'public key is too short')
+            if self.key_data.size < 30:
+                self.errors.push ERRORS[:data_short] 
             end
 
-            if self.key_data.len > 1000:
-                self.errors.push(:key_data=>'public key is too long') 
+            if self.key_data.size > 1000:
+                self.errors.push ERRORS[:data_long] 
+            end
+            
+            if self.key_data.size % 4 != 0:
+                self.errors.push ERRORS[:data_modulus] 
             end
 
             return self.errors.empty?
@@ -316,24 +327,6 @@ module Sshakery
 
     end 
 
-    module FsUtils
-        # from: https://github.com/rails/rails/blob/master/activesupport/lib/active_support/cache/file_store.rb#L121
-        # Lock a file for a block so only one process can modify it at a time.
-        def self.lock_file(file_name, &block) # :nodoc:
-          if File.exist?(file_name)
-            File.open(file_name, 'r+') do |f|
-              begin
-                f.flock File::LOCK_EX
-                yield f
-              ensure
-                f.flock File::LOCK_UN
-              end
-            end
-          else
-            yield f
-          end
-        end
-    end
 
 
 end
