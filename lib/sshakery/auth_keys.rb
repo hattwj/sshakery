@@ -122,7 +122,7 @@ module Sshakery
 
         def self.write(auth_key, destroy=false)
             lines = []
-            FsUtils.lock_file(self.path) do |f|
+            FsUtils.atomic_lock(:path=>self.path) do |f|
                 f.each_line do |line|
                     key=self.new(:raw_line => line )
 

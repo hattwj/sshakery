@@ -1,4 +1,5 @@
 require "sshakery/version"
+require "sshakery/fs_utils"
 require "sshakery/auth_keys"
 require "sshakery/errors"
 
