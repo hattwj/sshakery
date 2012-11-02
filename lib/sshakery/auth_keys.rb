@@ -96,7 +96,8 @@ module Sshakery
             :data_long   => {:key_data=>'public key is too long'},
             :data_char   => {:key_data=>'public key contains invalid base64 characters'},
             :data_nil    => {:key_data=>'public key is missing'},
-            :type_nil    => {:key_type=>'missing key type'}
+            :type_nil    => {:key_type=>'missing key type'},
+            :bool        => 'bad value for boolean field'
         }
     # class instance  attributes
         class << self; attr_accessor :path, :temp_path  end
@@ -290,7 +291,14 @@ module Sshakery
 
         def valid?
             self.errors = []
-
+            
+            BOOL_ATTRIBUTES.each do |field|
+                val = self.raw_getter field
+                unless val.nil? == true || val == true || val == false
+                    self.errors.push field=>ERRORS[:bool]
+                end
+            end
+            
             if self.key_data.nil?:
                 self.errors.push ERRORS[:data_nil] 
                 return false

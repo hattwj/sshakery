@@ -21,47 +21,6 @@ describe Sshakery::AuthKeys do
         it "must be defined" do
             Sshakery::AuthKeys.wont_be_nil
         end
-
-        it "must perform atomic writes" do
-        end
-        # mutex writes
-        ## lock and overwrite
-        # safe reads when unlocked only
-        # 
-
-
-        #it "must lock the file while writing" do
-        #    keys1 = Sshakery.new(@temp.path)
-        #    keys1.temp_path='more'
-        #    ts=[]
-        #    puts @temp.readlines
-    
-        #    File.open(@temp.path) do |f|
-        #        keys1.all.each do |key|
-        #            
-        #            t =Thread.new{
-        #                (1..50).each do |i|
-        #                    puts i
-        #                    key.all_no =true
-        #                    key.save
-        #                    puts "#{i.to_s} done"
-        #                end
-        #            }
-        #            ts.push t
-        #        end
-        #        ts.each{|t|t.join}
-        #        #failed_val = lambda { keys[0].save }
-        #        #failed_val.must_raise RuntimeError
-        #        #error = failed_val.call rescue $!
-        #        #error.message.must_include "cannot generate tempfile '#{@temp.path}'"
-        #    end
-
-        #end
-
-        it "must be able to perform backup rotation" do
-
-        end
-
     end
 
     # instance behavior
@@ -133,5 +92,15 @@ describe Sshakery::AuthKeys do
         key.errors.include?(@errors[:data_long]).must_equal true
     end
 
+    it "must reject invalid boolean options" do
+        instance = @keys.new
+        Sshakery::AuthKeys::BOOL_ATTRIBUTES.each do |attr|
+            key = @keys.all[0]
+            puts key.key_data.size
+            key.instance_variable_set("@#{attr}",'bad_data')
+            key.valid?.must_equal false
+            key.errors.include?(attr=>@errors[:bool]).must_equal true
+        end
+    end
 end
 
