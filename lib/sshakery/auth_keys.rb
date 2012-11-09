@@ -11,30 +11,49 @@ class Sshakery::AuthKeys
 
     ##
     # Attributes that help define the current state of the key
-    INSTANCE_ATTRIBUTES = [ :errors,
+    STATE_ATTRIBUTES = [ 
+        :errors,
         :raw_line,
-        :path,
         :saved
     ]
 
     ##
     # :category: Instance Attributes
-    # Attributes used to create a key line 
-    # They are listed in order that they appear in the authorized_keys file 
+    # Attributes that are read from / written to authorized_keys files. 
+    # They are listed in the order that they should appear in the authorized_keys file 
+    # 
+    # 
+    # [command]                 (string) -> A forced shell command to run
+    #                               key.command = 'ls'
     #
-    # [command]                 Forced command(string)
-    # [permitopen]              Permit open
-    # [tunnel]                  Tunnel
-    # [from]                    IP address required for client
-    # [environment]             Array
-    # [no_agent_forwarding]     Boolean
-    # [no_port_forwarding]      Boolean
-    # [no_pty]                  Boolean
-    # [no_user_rc]              Boolean
-    # [no_X11_forwarding]       Boolean
-    # [key_type]                String
-    # [key_data]                String (B64)
-    # [note]                    String
+    # [permitopen]              (string) -> TODO: document
+    # 
+    # [tunnel]                  (integer) -> Port forwarding
+    #                               key.tunnel = 5950
+    #
+    # [from]                    (string) -> IP/host address required for client
+    #
+    # [environment]             (array) -> Array of strings to set shell environment variables
+    #                           Not tested
+    #                              key.environment.push 'RAILS_ENV=production'
+    #
+    # [no_agent_forwarding]     (boolean) -> Don't allow ssh agent authentication forwarding::
+    #                           
+    #
+    # [no_port_forwarding]      (boolean) -> Don't allow port forwarding
+    #
+    # [no_pty]                  (boolean) -> Don't create terminal for client
+    #
+    # [no_user_rc]              (boolean) -> Don't process user rc files
+    #
+    # [no_X11_forwarding]       (boolean) -> Don't allow X11 forwarding.
+    #                           Please note the uppercase 'X' in X11
+    #
+    # [key_type]                (string) -> Type of key. 'ssh-dsa' or 'ssh-rsa'
+    #
+    # [key_data]                (string) -> A Base64 string of public key data
+    #
+    # [note]                    (string) -> A note about a key. No spaces allowed
     #
     KEY_ATTRIBUTES =[
         :command,
@@ -54,7 +73,7 @@ class Sshakery::AuthKeys
 
     ##
     # A list of all attributes a key has
-    ATTRIBUTES = INSTANCE_ATTRIBUTES+KEY_ATTRIBUTES #:nodoc:
+    ATTRIBUTES = STATE_ATTRIBUTES+KEY_ATTRIBUTES #:nodoc:
     
     ##
     # set attributes
@@ -143,20 +162,28 @@ class Sshakery::AuthKeys
     }
 
     # class instance attributes
-    class << self; attr_accessor :path, :temp_path  end 
+    class << self; 
+        # Path to authorized_keys file
+        attr_accessor :path
+
+        # Path to lock file (cannot be the same as key file)
+        attr_accessor :temp_path  
+    end 
 
     ##
     # Search the authorized_keys file for keys containing a field with a specific value 
+    #
     # *Args*    :
-    # - +field+ -> The attribute to match against
-    # - +value+ -> The value to match with
+    # - +fields+ -> A hash of key value pairs to match against
     # - +with_regex+ -> Use regex matching (default=false)
+    #
     # *Returns* :
     # - +Array+ -> An array of keys that matched
     #
+    # *Usage*   :
     #      keys = Sshakery.load '/home/someuser/.ssh/authorized_keys'
     #      foo_keys = keys.find_all_by :note=>'foo'
-    #      fc_keys = keys.find_all_by :command=>'ls'
+    #      fc_keys = keys.find_all_by :command=>'ls', :no_X11_forwarding=>true
     #      rsa_keys = keys.find_all_by :key_data=>'ssh-rsa'
     # 
     def self.find_all_by(fields ={}, with_regex=false)
@@ -302,7 +329,9 @@ class Sshakery::AuthKeys
     end
 
     ##
-    # Add a key to authorized keys file if it passes validation
+    # Add a key to authorized keys file if it passes validation.
+    # If the validations fail the reason for the failure will be
+    # found in @errors.
     #
     # *Returns* :
     # - +boolean+   -> True if save was successful, otherwise returns false
@@ -313,7 +342,7 @@ class Sshakery::AuthKeys
 
     ##
     # Add a key to authorized keys file if it passes validation, otherwise
-    # raise an error if save doest pass validations
+    # raise an error if save doesn't pass validations
     #
     # *Returns* :
     # - +boolean+   -> True if save was successful, otherwise raises error
@@ -390,6 +419,8 @@ class Sshakery::AuthKeys
 
     ##
     # Validate the key
+    # If the validations fail the reason for the failure will be
+    # found in @errors.
     #
     # *Returns* :
     # - +Boolean+   -> True if valid, otherwise false

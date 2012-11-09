@@ -1,4 +1,4 @@
-
+# File system tools used by Sshakery
 module Sshakery::FsUtils
     require 'tempfile' unless defined?(Tempfile)
     require 'fileutils' unless defined?(FileUtils)
