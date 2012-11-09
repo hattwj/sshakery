@@ -7,7 +7,7 @@ describe Sshakery::AuthKeys do
         @temp = Tempfile.new('nofail')
         src = "#{$dir}/fixtures/sshakery_nofail_fixture.txt" 
         FileUtils.cp src, @temp.path
-        @keys = Sshakery.new(@temp.path)
+        @keys = Sshakery.load(@temp.path)
         @key = @keys.new
     end
 
@@ -96,7 +96,6 @@ describe Sshakery::AuthKeys do
         instance = @keys.new
         Sshakery::AuthKeys::BOOL_ATTRIBUTES.each do |attr|
             key = @keys.all[0]
-            puts key.key_data.size
             key.instance_variable_set("@#{attr}",'bad_data')
             key.valid?.must_equal false
             key.errors.include?(attr=>@errors[:bool]).must_equal true

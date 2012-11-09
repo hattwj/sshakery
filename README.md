@@ -1,6 +1,6 @@
 # Sshakery
 
-TODO: Write a gem description
+Manipulate authorized_keys files
 
 ## Installation
 
@@ -18,7 +18,20 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+    require 'sshakery'
+    
+    # instantiate key file object
+    keys = Sshakery.new '/path/to/.ssh/authorized_keys'
+
+    # return array of all keys
+    all_keys = keys.all
+
+    # return only keys where the note == 'foo'
+    somekeys = keys.find_all_by :note=>'foo'
+
+    # add forced command to key
+    key.command = 'ls'
+    key.save
 
 ## Contributing
 

@@ -2,17 +2,27 @@
 module Sshakery::FsUtils
     require 'tempfile' unless defined?(Tempfile)
     require 'fileutils' unless defined?(FileUtils)
-
+    
+    ##
     # Write to file atomically while maintaining an exclusive lock
-    #   create unused lock file and lock it
-    #   create temp file
-    #   copy file to temp file and yield temp
-    #   atomic write temp
-    #   release lock file
-    #   - cant lock actual file as mv operation breaks lock
-    #   - exclusive lock only works if all processes use the same
-    #     lock file (this will happen by default)
-    #   - atomic writes by moving file
+    # - Cannot lock actual file, the atomic mv operation breaks the flock
+    # - Exclusive flock only works if all processes use the same 
+    # lock file (this will happen automatically by default)
+    # - Atomic writes are achieved by fs move operation 
+    #
+    # ===Usage
+    #    fpath = '/home/user/.ssh/authorized_keys'
+    #    Sshakery::FsUtils.atomic_lock(:path=>fpath) do |f|
+    #       f.write 'Awesome atomic writes, now with locks as well!'
+    #    end
+    #
+    # ===Args
+    # - +path+ -> (required) Path to auth_keys file
+    # - +lock_name+ -> (optional) Path to lock file
+    #
+    # ===Yields
+    # - +file_object+ -> File object used for atomic writes
+    #
     def self.atomic_lock(opts={:path=>nil,:lock_name=>nil}, &block)
         file_name = opts[:path]
         opts[:lock_name] = file_name+'.lockfile' unless opts[:lock_name]
@@ -33,8 +43,22 @@ module Sshakery::FsUtils
         end
     end
 
-    # Lock a file for a block so only one thread/process can modify it at a time.
-    def self.lock_file(file_name, &block) 
+    # lock a file 
+    #
+    # ===Usage
+    #    fpath = '/home/user/.ssh/authorized_keys'
+    #    Sshakery::FsUtils.lock_file(:path=>fpath) do |f|
+    #       f.write 'Awesome locking writes!'
+    #    end
+    #
+    # ===Args
+    # +path+ -> (required) Path to auth_keys file
+    # +lock_name+ -> (optional) Path to lock file
+    #
+    # ===Yields
+    # +file_object+ -> File object used for atomic writes
+    #
+    def self.lock_file(file_name, &block) #:nodoc:
         f = File.open(file_name, 'r+')
         begin
             f.flock File::LOCK_EX
@@ -45,7 +69,7 @@ module Sshakery::FsUtils
     end
     
     # aquire shared lock for reading a file
-    def self.read(file_name, &block)
+    def self.read(file_name, &block) #:nodoc:
         f = File.open(file_name, 'r')
         f.flock File::LOCK_SH
         puts "sh locked #{file_name}"
@@ -55,9 +79,10 @@ module Sshakery::FsUtils
         f.flock File::LOCK_UN
     end
 
-  # copied from:
-  # https://github.com/rails/rails/blob/master/activesupport/lib/active_support/core_ext/file/atomic.rb
-  
+  ##
+  # ===Source copied from:
+  # * https://github.com/rails/rails/blob/master/activesupport/lib/active_support/core_ext/file/atomic.rb
+  #
   # Write to a file atomically. Useful for situations where you don't
   # want other processes or threads to see half-written files.
   #
@@ -116,8 +141,10 @@ module Sshakery::FsUtils
     FileUtils.rm_f(file_name) if file_name
   end
     
+    ##
+    # *Not used yet*::
     # lock file details to write to disk
-    def self.lock_info
+    def self.lock_info #:nodoc:
         return [
           'Sshakery-lockfile',
           Thread.current.object_id,

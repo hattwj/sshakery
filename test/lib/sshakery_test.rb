@@ -9,7 +9,7 @@ describe Sshakery do
         @temp = Tempfile.new('nofail')
         src = "#{$dir}/fixtures/sshakery_nofail_fixture.txt" 
         FileUtils.cp src, @temp.path
-        @keys = Sshakery.new(@temp.path)
+        @keys = Sshakery.load(@temp.path)
     end
 
     # close temp file (should autoremove)
@@ -24,8 +24,9 @@ describe Sshakery do
 
 
     it "must be searchable" do
-        @keys.find_all_by(:command,'ls').size.must_equal 1
-        @keys.find_all_by(:no_X11_forwarding,true).size.must_equal 1
+        @keys.find_all_by(:command=>'ls').size.must_equal 1
+        @keys.find_all_by(:no_X11_forwarding=>true).size.must_equal 1
+        @keys.find_all_by(:no_X11_forwarding=>true,:no_user_rc=>true).size.must_equal 1
     end
 end
 
