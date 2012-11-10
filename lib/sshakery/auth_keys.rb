@@ -1,8 +1,10 @@
+module Sshakery
 ##
 # == AuthKeys
 # The AuthKeys class is the main part of this gem and is responsible
 # for reading from and writing to an authorized_keys file.
-class Sshakery::AuthKeys
+
+class AuthKeys
     # atomic writes
     require 'tempfile'
     require 'fileutils'
@@ -472,5 +474,5 @@ class Sshakery::AuthKeys
         return false if not self.valid?
         return self.saved           
     end
-
+end
 end 
