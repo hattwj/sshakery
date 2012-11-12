@@ -436,29 +436,29 @@ class AuthKeys
             end
         end
         
-        if self.key_data.nil?:
+        if self.key_data.nil?
             self.errors.push ERRORS[:data_nil] 
             return false
         end
 
-        if self.key_type.nil?:
+        if self.key_type.nil?
             self.errors.push ERRORS[:type_nil] 
             return false
         end
 
-        if not self.key_data.match "^#{B64_REGEX}$":
+        if not self.key_data.match "^#{B64_REGEX}$"
             self.errors.push ERRORS[:data_char] 
         end
 
-        if self.key_data.size < 30:
+        if self.key_data.size < 30
             self.errors.push ERRORS[:data_short] 
         end
 
-        if self.key_data.size > 1000:
+        if self.key_data.size > 1000
             self.errors.push ERRORS[:data_long] 
         end
         
-        if self.key_data.size % 4 != 0:
+        if self.key_data.size % 4 != 0
             self.errors.push ERRORS[:data_modulus] 
         end
 
