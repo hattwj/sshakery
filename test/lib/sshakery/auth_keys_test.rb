@@ -1,4 +1,4 @@
-require 'test/test_helper'
+require 'test_helper'
 
 describe Sshakery::AuthKeys do
     # create a copy of test data to manipulate
@@ -29,7 +29,23 @@ describe Sshakery::AuthKeys do
         key.valid?.must_equal false
         key.errors.wont_be_empty
     end
-
+    
+    it "must safely load pubkey files" do
+        src = "#{$dir}/fixtures/sshakery_malicous_pubkey.txt" 
+        line = nil
+        File.open(src,'r'){|f|line=f.read}
+        key = @keys.new
+        key.raw_line = line
+        key.load_pubkey
+        key.key_type.must_equal 'ssh-rsa'
+        key.command.must_be_nil
+        key.note.must_equal 'malicious'
+        key.key_data.wont_be_empty
+        key.save.must_equal true
+        key.raw_line = line
+        key.load_raw_line
+        key.command.must_equal 'fortune'
+    end
     it "must not save when empty" do
         key=@keys.new
         key.save.must_equal false

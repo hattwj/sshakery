@@ -1,0 +1,1 @@
+command="fortune" ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDsBWq5F1n4FcZILZt42B6NthVrfGo0whFfSbyPuc/wfQcACpOy8EeAsCIGw0m+pDF8KlmDhYJhC/DGv4zXqk6yO+X3n5x+zfJY4AL1bu72kBnOuXbPhiDfmoBmcApbHDVJnzhRzd8sWv6qLd7bF+Dd malicious

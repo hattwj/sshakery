@@ -1,4 +1,4 @@
-require 'test/test_helper'
+require 'test_helper'
 
 describe Sshakery::FsUtils do
     it "must lock for writes" do

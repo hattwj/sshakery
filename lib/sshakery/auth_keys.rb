@@ -236,6 +236,7 @@ class AuthKeys
                 f.puts line
             end
         end
+        return true
     end
     
     ##
@@ -255,41 +256,68 @@ class AuthKeys
             instance_variable_set("@#{attr}", args.has_key?( attr ) ? args[attr] : nil )
         end
 
+        self.raw_line = args[:raw_pubkey] || args[:raw_line]
+
+        if args.has_key? :raw_pubkey
+            self.load_pubkey
+            return
+        end
+
         unless self.raw_line.nil? 
             self.load_raw_line
         end
     end
-    
+
+    ##
+    # Instantiate key based on pubkey file
+    # only set key_data,key_type and note attributes
+    def load_pubkey
+        #filter line data
+        load_raw_line([:key_data,:key_type,:note]) 
+        
+        # sanitize old raw line
+        self.raw_line = self.gen_raw_line
+    end
+
     ##
     # Instantiate key object based on contents of raw_line
-    def load_raw_line
+    def load_raw_line opts = OPTS_REGEX.keys
         self.raw_line.chomp!
-        OPTS_REGEX.each do |xfield,pattern|
-            field = "@#{xfield}"
-            m= self.raw_line.match pattern
-            next if m.nil?
-            #p "#{field} => #{m.inspect}" 
-            if BOOL_ATTRIBUTES.include? xfield
-                self.instance_variable_set(field, true)
-                next  
-            end
-
-            if STR_ATTRIBUTES.include? xfield 
-                self.instance_variable_set(field,  m[1])
-                next
-            end
-
-            if ARR_STR_ATTRIBUTES.include? xfield 
-                self.instance_variable_set(field, m.to_a)
-                next
-            end
-
-            if SUB_STR_ATTRIBUTES.include? xfield 
-                self.instance_variable_set(field, m[1])
-                next
-            end 
-
+        opts.each do |xfield|
+            pattern = OPTS_REGEX[xfield]
+            did_set = raw_setter xfield, pattern
+            #puts did_set
         end
+    end
+
+    ##
+    # set attribute (field) obtained from
+    # matching pattern in raw_line
+    def raw_setter xfield,pattern
+       field = "@#{xfield}"
+       m = self.raw_line.match pattern
+       return false if m.nil?
+       #p "#{field} => #{m.inspect}" 
+       if BOOL_ATTRIBUTES.include? xfield
+           self.instance_variable_set(field, true)
+           return true  
+       end
+
+       if STR_ATTRIBUTES.include? xfield 
+           self.instance_variable_set(field,  m[1])
+           return true
+       end
+
+       if ARR_STR_ATTRIBUTES.include? xfield 
+           self.instance_variable_set(field, m.to_a)
+           return true
+       end
+
+       if SUB_STR_ATTRIBUTES.include? xfield 
+           self.instance_variable_set(field, m[1])
+           return true
+       end 
+       return false
     end
 
     ##
